@@ -79,6 +79,11 @@ class TelaDeConfiguracoes {
     this.arrastou = false;
     this.pontoY = 0;
     this.ultimoY = 0;
+    this.scrollHost = null;
+    this.scrollContent = null;
+    this.sincronizandoScroll = false;
+    this.ouvinteScroll = null;
+    this.ouvinteCliqueScroll = null;
 
     // Aviso de rodape no lugar do Toast.
     this.aviso = "";
@@ -130,6 +135,7 @@ class TelaDeConfiguracoes {
     this.waitingGamepadAction = null;
 
     window.addEventListener("keydown", this.ouvinteTeclado);
+    this.criarRolagemNativa();
 
     // onResume: a musica do menu continua tocando nesta tela.
     this.menuSound.startMusic("menu_music");
@@ -137,6 +143,11 @@ class TelaDeConfiguracoes {
 
   sair() {
     window.removeEventListener("keydown", this.ouvinteTeclado);
+    if (this.scrollHost && this.scrollHost.parentNode) this.scrollHost.parentNode.removeChild(this.scrollHost);
+    this.scrollHost = null;
+    this.scrollContent = null;
+    this.ouvinteScroll = null;
+    this.ouvinteCliqueScroll = null;
     this.waitingGamepadAction = null;
     // O onDestroy do Kotlin chamava releaseKeepMusic() porque cada Activity
     // tinha o proprio SoundManager. Aqui ele e do app inteiro: nao solta nada.
@@ -149,6 +160,52 @@ class TelaDeConfiguracoes {
         this.avisoTempo = 0;
         this.aviso = "";
       }
+    }
+  }
+
+  criarRolagemNativa() {
+    const host = document.createElement("div");
+    host.className = "rolagem-nativa";
+    host.setAttribute("aria-label", "Rolagem das configurações");
+    host.tabIndex = 0;
+    Object.assign(host.style, {
+      position: "absolute", inset: "0", overflowX: "hidden", overflowY: "auto",
+      background: "transparent", zIndex: "4"
+    });
+    const conteudo = document.createElement("div");
+    conteudo.style.width = "1px";
+    conteudo.style.height = "150vh";
+    conteudo.style.pointerEvents = "none";
+    host.appendChild(conteudo);
+
+    this.ouvinteScroll = () => {
+      if (this.sincronizandoScroll) return;
+      const escalaY = this.app.altura / Math.max(1, host.clientHeight);
+      this.rolagem = host.scrollTop * escalaY;
+    };
+    this.ouvinteCliqueScroll = (evento) => {
+      const r = host.getBoundingClientRect();
+      const x = (evento.clientX - r.left) * this.app.largura / Math.max(1, r.width);
+      const y = (evento.clientY - r.top) * this.app.altura / Math.max(1, r.height);
+      this.aoApontar("baixo", x, y);
+      this.aoApontar("cima", x, y);
+    };
+    host.addEventListener("scroll", this.ouvinteScroll, { passive: true });
+    host.addEventListener("click", this.ouvinteCliqueScroll);
+    this.app.camadaHtml.appendChild(host);
+    this.scrollHost = host;
+    this.scrollContent = conteudo;
+  }
+
+  sincronizarRolagemNativa(altura) {
+    if (!this.scrollHost || !this.scrollContent) return;
+    const escalaY = altura / Math.max(1, this.scrollHost.clientHeight);
+    this.scrollContent.style.height = Math.max(this.scrollHost.clientHeight + 1, this.conteudoAltura / escalaY) + "px";
+    const destino = this.rolagem / escalaY;
+    if (Math.abs(this.scrollHost.scrollTop - destino) > 1) {
+      this.sincronizandoScroll = true;
+      this.scrollHost.scrollTop = destino;
+      this.sincronizandoScroll = false;
     }
   }
 
@@ -460,6 +517,7 @@ class TelaDeConfiguracoes {
 
     const maxRolagem = Math.max(0, this.conteudoAltura - altura);
     this.rolagem = limitar(this.rolagem, 0, maxRolagem);
+    this.sincronizarRolagemNativa(altura);
 
     // Fundo: a mesma arte do menu, escurecida (o XML usava so @color/bg_dark).
     const fundo = Assets.img("menu_bg_turbo_race");
