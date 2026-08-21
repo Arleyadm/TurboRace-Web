@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: turbo-race-web
+    runtime: static
+    buildCommand: echo "Turbo Race pronto"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=3600
