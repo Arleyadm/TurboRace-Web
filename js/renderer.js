@@ -1376,19 +1376,24 @@ class Renderer {
     if (isRoadObject) {
       farVisibility = 1;
     } else {
-      const yStart = (isTreeLike || isBushLike) ? 0.455 : 0.405;
-      const ySpan = (isTreeLike || isBushLike) ? 0.255 : 0.235;
-      const roadStart = (isTreeLike || isBushLike) ? this.width * 0.035 : this.width * 0.028;
-      const roadSpan = (isTreeLike || isBushLike) ? this.width * 0.120 : this.width * 0.105;
+      // As arvores so entram quando o segmento ja esta bem mais proximo do
+      // piloto. Antes elas nasciam perto do horizonte, onde a pista e estreita,
+      // e por alguns quadros pareciam estar plantadas no meio do asfalto.
+      const yStart = isTreeLike ? 0.58 : (isBushLike ? 0.455 : 0.405);
+      const ySpan = isTreeLike ? 0.22 : (isBushLike ? 0.255 : 0.235);
+      const roadStart = isTreeLike ? this.width * 0.070 : ((isBushLike ? this.width * 0.035 : this.width * 0.028));
+      const roadSpan = isTreeLike ? this.width * 0.125 : ((isBushLike ? this.width * 0.120 : this.width * 0.105));
       const yVisibility = limitar((screenY - this.height * yStart) / (this.height * ySpan), 0, 1);
       const roadVisibility = limitar((seg.p1.screen.w - roadStart) / roadSpan, 0, 1);
       let vis = Math.min(yVisibility, roadVisibility);
-      if ((isTreeLike || isBushLike) && vis > 0.04) {
+      // Arbustos preservam o ganho antigo. Arvores usam o alfa linear para
+      // surgirem suavemente, sem o salto repentino de 16% de opacidade.
+      if (isBushLike && vis > 0.04) {
         vis = 0.16 + vis * 0.84;
       }
       farVisibility = vis;
     }
-    if (!isRoadObject && farVisibility <= ((isTreeLike || isBushLike) ? 0.02 : 0.04)) return;
+    if (!isRoadObject && farVisibility <= (isTreeLike ? 0.06 : (isBushLike ? 0.02 : 0.04))) return;
 
     const safeSizeFactor = isRoadObject
       ? limitar(sp.sizeFactor, 0.90, 1.35)
@@ -1428,9 +1433,9 @@ class Renderer {
         default:
           typeGap = drawUnit * 0.82; break;
       }
-      const perspectivePush = this.width * (isTreeLike ? 0.075 : (isBushLike ? 0.060 : 0.125)) * (1 - farVisibility);
+      const perspectivePush = this.width * (isTreeLike ? 0.110 : (isBushLike ? 0.060 : 0.125)) * (1 - farVisibility);
       let roadGap;
-      if (isTreeLike) roadGap = Math.max(typeGap, seg.p1.screen.w * 0.18, this.width * 0.012) + perspectivePush;
+      if (isTreeLike) roadGap = Math.max(typeGap, seg.p1.screen.w * 0.22, this.width * 0.020) + perspectivePush;
       else if (isBushLike) roadGap = Math.max(typeGap, seg.p1.screen.w * 0.14, this.width * 0.010) + perspectivePush;
       else roadGap = Math.max(typeGap, seg.p1.screen.w * 0.30, this.width * 0.018) + perspectivePush;
       baseX = (side < 0)
