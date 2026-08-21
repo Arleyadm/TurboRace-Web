@@ -77,7 +77,7 @@ class OnlineService {
   // -----------------------------------------------------------------------
 
   /**
-   * opcoes: { criar, sala, nome, carId, max, fase, salaNome }
+   * opcoes: { criar, sala, nome, carId, max, fase, salaNome, clima, pocaAgua, pocaOleo, voltas }
    *  - criar: true monta uma sala nova e devolve o codigo
    *  - sala: entra numa sala pelo codigo
    *  - sem os dois: cai em qualquer sala com vaga, ou cria uma
@@ -97,9 +97,13 @@ class OnlineService {
       partes.push("token=" + encodeURIComponent(this.token));
     } else if (o.criar) {
       partes.push("criar=1");
-      partes.push("max=" + limitar(Math.trunc(o.max || 4), 2, 8));
+      partes.push("max=" + limitar(Math.trunc(o.max || 4), 2, 24));
       partes.push("fase=" + limitar(Math.trunc(o.fase || 0), 0, StageCatalog.count() - 1));
       if (o.salaNome) partes.push("salaNome=" + encodeURIComponent(String(o.salaNome).slice(0, 24)));
+      partes.push("clima=" + encodeURIComponent(String(o.clima || "auto")));
+      partes.push("pocaAgua=" + (o.pocaAgua === false ? "0" : "1"));
+      partes.push("pocaOleo=" + (o.pocaOleo === false ? "0" : "1"));
+      partes.push("voltas=" + limitar(Math.trunc(o.voltas || 3), 1, 10));
     } else if (o.sala) {
       partes.push("sala=" + encodeURIComponent(String(o.sala).toUpperCase().slice(0, 8)));
     }
@@ -191,6 +195,10 @@ class OnlineService {
         this._avisar("onRaceStart", {
           semente: msg.semente,
           fase: msg.fase,
+          clima: msg.clima || "auto",
+          pocaAgua: msg.pocaAgua !== false,
+          pocaOleo: msg.pocaOleo !== false,
+          voltas: limitar(Math.trunc(msg.voltas || 3), 1, 10),
           corridaId: msg.corridaId,
           emMs: msg.emMs || 0,
           jogadores: msg.jogadores || []
@@ -326,7 +334,7 @@ class OnlineService {
     this._enviar({ t: "fase", fase: limitar(Math.trunc(indice), 0, StageCatalog.count() - 1) });
   }
 
-  setMaxPlayers(max) { this._enviar({ t: "maximo", max: limitar(Math.trunc(max), 2, 8) }); }
+  setMaxPlayers(max) { this._enviar({ t: "maximo", max: limitar(Math.trunc(max), 2, 24) }); }
 
   startRace() { this._enviar({ t: "largar" }); }
 
