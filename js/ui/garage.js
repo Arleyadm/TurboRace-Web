@@ -812,7 +812,7 @@ class TelaDaGaragem {
       return;
     }
 
-    if (tipo === "mover") {
+    if (tipo === "mover" || tipo === "move") {
       if (this.arrastandoLista) {
         const dy = y - this.ponteiroY;
         this.upgradesListScroll = limitar(this.upgradesListScroll - dy, 0, this.upgradesListMax);

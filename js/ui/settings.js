@@ -759,7 +759,7 @@ class TelaDeConfiguracoes {
       return;
     }
 
-    if (tipo === "mover") {
+    if (tipo === "mover" || tipo === "move") {
       if (!this.arrastando) return;
       const dy = y - this.ultimoY;
       this.ultimoY = y;
