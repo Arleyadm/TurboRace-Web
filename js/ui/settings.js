@@ -80,10 +80,8 @@ class TelaDeConfiguracoes {
     this.pontoY = 0;
     this.ultimoY = 0;
     this.scrollHost = null;
-    this.scrollContent = null;
-    this.sincronizandoScroll = false;
     this.ouvinteScroll = null;
-    this.ouvinteCliqueScroll = null;
+    this.usaRolagemNativa = true;
 
     // Aviso de rodape no lugar do Toast.
     this.aviso = "";
@@ -143,11 +141,15 @@ class TelaDeConfiguracoes {
 
   sair() {
     window.removeEventListener("keydown", this.ouvinteTeclado);
+    window.removeEventListener("scroll", this.ouvinteScroll);
+    document.body.removeEventListener("scroll", this.ouvinteScroll);
     if (this.scrollHost && this.scrollHost.parentNode) this.scrollHost.parentNode.removeChild(this.scrollHost);
+    document.body.classList.remove("configuracoes-rolaveis");
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    window.scrollTo(0, 0);
     this.scrollHost = null;
-    this.scrollContent = null;
     this.ouvinteScroll = null;
-    this.ouvinteCliqueScroll = null;
     this.waitingGamepadAction = null;
     // O onDestroy do Kotlin chamava releaseKeepMusic() porque cada Activity
     // tinha o proprio SoundManager. Aqui ele e do app inteiro: nao solta nada.
@@ -167,46 +169,28 @@ class TelaDeConfiguracoes {
     const host = document.createElement("div");
     host.className = "rolagem-nativa";
     host.setAttribute("aria-label", "Rolagem das configurações");
-    host.tabIndex = 0;
     Object.assign(host.style, {
-      position: "absolute", inset: "0", overflowX: "hidden", overflowY: "auto",
-      background: "transparent", zIndex: "4"
+      width: "1px", height: "150vh", pointerEvents: "none"
     });
-    const conteudo = document.createElement("div");
-    conteudo.style.width = "1px";
-    conteudo.style.height = "150vh";
-    conteudo.style.pointerEvents = "none";
-    host.appendChild(conteudo);
-
+    document.body.classList.add("configuracoes-rolaveis");
+    document.body.appendChild(host);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    window.scrollTo(0, 0);
     this.ouvinteScroll = () => {
-      if (this.sincronizandoScroll) return;
-      const escalaY = this.app.altura / Math.max(1, host.clientHeight);
-      this.rolagem = host.scrollTop * escalaY;
+      const escalaY = this.app.altura / Math.max(1, window.innerHeight);
+      const topo = Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
+      this.rolagem = topo * escalaY;
     };
-    this.ouvinteCliqueScroll = (evento) => {
-      const r = host.getBoundingClientRect();
-      const x = (evento.clientX - r.left) * this.app.largura / Math.max(1, r.width);
-      const y = (evento.clientY - r.top) * this.app.altura / Math.max(1, r.height);
-      this.aoApontar("baixo", x, y);
-      this.aoApontar("cima", x, y);
-    };
-    host.addEventListener("scroll", this.ouvinteScroll, { passive: true });
-    host.addEventListener("click", this.ouvinteCliqueScroll);
-    this.app.camadaHtml.appendChild(host);
+    window.addEventListener("scroll", this.ouvinteScroll, { passive: true });
+    document.body.addEventListener("scroll", this.ouvinteScroll, { passive: true });
     this.scrollHost = host;
-    this.scrollContent = conteudo;
   }
 
   sincronizarRolagemNativa(altura) {
-    if (!this.scrollHost || !this.scrollContent) return;
-    const escalaY = altura / Math.max(1, this.scrollHost.clientHeight);
-    this.scrollContent.style.height = Math.max(this.scrollHost.clientHeight + 1, this.conteudoAltura / escalaY) + "px";
-    const destino = this.rolagem / escalaY;
-    if (Math.abs(this.scrollHost.scrollTop - destino) > 1) {
-      this.sincronizandoScroll = true;
-      this.scrollHost.scrollTop = destino;
-      this.sincronizandoScroll = false;
-    }
+    if (!this.scrollHost) return;
+    const escalaY = altura / Math.max(1, window.innerHeight);
+    this.scrollHost.style.height = Math.max(window.innerHeight + 1, this.conteudoAltura / escalaY) + "px";
   }
 
   // ---------------------------------------------------------
@@ -809,6 +793,12 @@ class TelaDeConfiguracoes {
   aoApontar(tipo, x, y) {
     const folga = 6 * this.esc;
 
+    if (tipo === "cancelar") {
+      this.arrastando = false;
+      this.arrastou = true;
+      return;
+    }
+
     if (tipo === "baixo") {
       this.arrastando = true;
       this.arrastou = false;
@@ -882,6 +872,11 @@ class TelaDeConfiguracoes {
   aoGirarRoda(delta) {
     const maxRolagem = Math.max(0, this.conteudoAltura - this.app.altura);
     this.rolagem = limitar(this.rolagem + delta, 0, maxRolagem);
+    const escalaY = this.app.altura / Math.max(1, window.innerHeight);
+    const destino = this.rolagem / escalaY;
+    document.body.scrollTop = destino;
+    document.documentElement.scrollTop = destino;
+    window.scrollTo(0, destino);
   }
 }
 
