@@ -1,7 +1,7 @@
 # Turbo Race Web
 
 Versão web independente do Turbo Race, com as 28 fases, garagem, configurações,
-áudio, controles por teclado/toque e salas online para até 8 jogadores.
+áudio, controles por teclado/toque e salas online para até 24 jogadores.
 
 ## Rodar localmente
 
