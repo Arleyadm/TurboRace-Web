@@ -1335,6 +1335,12 @@ class Renderer {
     if (unit <= 0) return;
     if (this.width <= 0 || this.height <= 0) return;
 
+    // Removidos globalmente: o portal de placas ocupava grande parte da tela
+    // e a arvore redonda tinha um estilo cartunesco diferente do restante do
+    // cenario. O filtro aqui garante que nao aparecam em nenhuma das 28 fases,
+    // inclusive ao repetir uma pista com uma semente salva anteriormente.
+    if (sp.type === SpriteType.PORTAL || sp.type === SpriteType.TREE_ROUND) return;
+
     /*
      * V49 - perspectiva lateral corrigida:
      * - arvores/placas/arbustos continuam visiveis ate perto;
