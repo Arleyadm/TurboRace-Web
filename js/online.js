@@ -127,6 +127,9 @@ class OnlineService {
     ws.onopen = function () {
       self.tentativasDeVolta = 0;
       self._avisar("onStatus", "Conectado. Aguardando a sala…");
+      // Mede a latencia imediatamente; esperar o primeiro intervalo de 8 s
+      // podia deixar uma largada rapida sem compensacao de rede.
+      self._enviar({ t: "ping", stamp: Date.now() });
       self._comecarPing();
     };
 
@@ -201,6 +204,7 @@ class OnlineService {
           voltas: limitar(Math.trunc(msg.voltas || 3), 1, 10),
           corridaId: msg.corridaId,
           emMs: msg.emMs || 0,
+          sincronizarEmMs: msg.sincronizarEmMs || msg.emMs || 0,
           jogadores: msg.jogadores || []
         });
         return;

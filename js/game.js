@@ -18,7 +18,11 @@ class TelaDeCorrida {
     const tempoLimite = Math.max(this.stage.timeLimit, 120 + Math.max(0, voltas - 3) * 60);
     this.state = new GameState(tempoLimite, this.trackLength, voltas);
     this.renderer.weatherOverride = clima;
-    this.state.countdown += Math.max(0, Number(p.esperaLargadaMs) || 0) / 1000;
+    if (OnlineSession.enabled && Number.isFinite(Number(p.largadaLocalEm))) {
+      this.state.countdown = Math.max(0, (Number(p.largadaLocalEm) - performance.now()) / 1000);
+    } else {
+      this.state.countdown += Math.max(0, Number(p.esperaLargadaMs) || 0) / 1000;
+    }
     this.state.totalRacers = OnlineSession.enabled ? Math.max(2, (OnlineSession.service?.connectedCount() || 0) + 1) : 1;
     this.countdownWas = Math.ceil(this.state.countdown) + 1;
     this.remote = {};

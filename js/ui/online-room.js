@@ -140,11 +140,17 @@ class TelaOnline {
       onRaceStart: r => {
         OnlineSession.enabled = true;
         OnlineSession.stageIndex = r.fase;
-        const esperaSincronizada = Math.max(0, (r.emMs || 0) - (service.latenciaMs || 0) / 2);
+        const esperaSincronizada = Math.max(0,
+          (r.sincronizarEmMs || r.emMs || 0) - (service.latenciaMs || 0) / 2);
+        // performance.now nao muda se o relogio do aparelho for corrigido. O
+        // alvo e criado antes da tela da corrida, entao o carregamento da pista
+        // e dos recursos e descontado e nao atrasa o GO deste jogador.
+        const largadaLocalEm = performance.now() + esperaSincronizada;
         this.app.irPara("corrida", {
           stageIndex: r.fase,
           semente: r.semente,
           esperaLargadaMs: esperaSincronizada,
+          largadaLocalEm: largadaLocalEm,
           clima: r.clima,
           pocaAgua: r.pocaAgua,
           pocaOleo: r.pocaOleo,
