@@ -143,8 +143,10 @@ class TelaDeConfiguracoes {
     window.removeEventListener("keydown", this.ouvinteTeclado);
     window.removeEventListener("scroll", this.ouvinteScroll);
     document.body.removeEventListener("scroll", this.ouvinteScroll);
+    document.documentElement.removeEventListener("scroll", this.ouvinteScroll);
     if (this.scrollHost && this.scrollHost.parentNode) this.scrollHost.parentNode.removeChild(this.scrollHost);
     document.body.classList.remove("configuracoes-rolaveis");
+    document.documentElement.classList.remove("configuracoes-rolaveis");
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
     window.scrollTo(0, 0);
@@ -172,6 +174,7 @@ class TelaDeConfiguracoes {
     Object.assign(host.style, {
       width: "1px", height: "150vh", pointerEvents: "none"
     });
+    document.documentElement.classList.add("configuracoes-rolaveis");
     document.body.classList.add("configuracoes-rolaveis");
     document.body.appendChild(host);
     document.body.scrollTop = 0;
@@ -184,6 +187,7 @@ class TelaDeConfiguracoes {
     };
     window.addEventListener("scroll", this.ouvinteScroll, { passive: true });
     document.body.addEventListener("scroll", this.ouvinteScroll, { passive: true });
+    document.documentElement.addEventListener("scroll", this.ouvinteScroll, { passive: true });
     this.scrollHost = host;
   }
 
