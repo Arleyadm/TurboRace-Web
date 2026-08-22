@@ -107,12 +107,14 @@ class TelaOnline {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     ctx.textAlign = "center";
-    ctx.font = `900 ${Math.max(28, h * .085)}px ${FONTE}`;
+    // Antes de criar a sala, preserva a composição original: título maior,
+    // mais respiro e botões largos. O painel detalhado só aparece na sala.
+    ctx.font = `900 ${Math.max(28, h * (this.codigo ? .085 : .10))}px ${FONTE}`;
     ctx.fillStyle = "#39efff";
-    ctx.fillText("SALA ONLINE", w / 2, h * .13);
-    ctx.font = `700 ${Math.max(15, h * .031)}px ${FONTE}`;
+    ctx.fillText("SALA ONLINE", w / 2, h * (this.codigo ? .13 : .16));
+    ctx.font = `700 ${Math.max(15, h * (this.codigo ? .031 : .035))}px ${FONTE}`;
     ctx.fillStyle = "#fff";
-    ctx.fillText(this.codigo ? "CÓDIGO: " + this.codigo : this.status, w / 2, h * .22);
+    ctx.fillText(this.codigo ? "CÓDIGO: " + this.codigo : this.status, w / 2, h * (this.codigo ? .22 : .27));
 
     if (this.resumo) {
       const s = this.resumo;
@@ -130,8 +132,10 @@ class TelaOnline {
     const labels = this.codigo ? ["PRONTO", "INICIAR CORRIDA", "VOLTAR"] : ["CRIAR SALA", "ENTRAR NA SALA", "VOLTAR"];
     this.botoes = [];
     labels.forEach((t, i) => {
-      const inicio = this.codigo ? .37 : .36;
-      const r = { left: w * .28, right: w * .72, top: h * (inicio + i * .15), bottom: h * (inicio + .105 + i * .15) };
+      const inicio = this.codigo ? .37 : .38;
+      const passo = this.codigo ? .15 : .16;
+      const alturaBotao = this.codigo ? .105 : .11;
+      const r = { left: w * .28, right: w * .72, top: h * (inicio + i * passo), bottom: h * (inicio + alturaBotao + i * passo) };
       this.botoes.push(r);
       const grad = ctx.createLinearGradient(r.left, 0, r.right, 0);
       grad.addColorStop(0, i === 1 ? "#fe2d9b" : "#196dff");
@@ -143,7 +147,7 @@ class TelaOnline {
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.fillStyle = "#fff";
-      ctx.font = `800 ${Math.max(14, h * .032)}px ${FONTE}`;
+      ctx.font = `800 ${Math.max(14, h * (this.codigo ? .032 : .035))}px ${FONTE}`;
       ctx.fillText(t, w / 2, (r.top + r.bottom) / 2 + h * .011);
     });
 
