@@ -9,10 +9,15 @@ class TelaOnline {
     this.host = false;
     this.resumo = null;
     this.botoes = [];
+    this.formularioSala = null;
+    this.foco = -1;
   }
 
   entrar() { this.app.sound.startMusic("menu_music"); }
-  sair() { if (!OnlineSession.enabled) OnlineSession.service?.close(); }
+  sair() {
+    this.fecharConfiguracaoSala();
+    if (!OnlineSession.enabled) OnlineSession.service?.close();
+  }
   update() {}
   medir() {}
 
@@ -30,29 +35,91 @@ class TelaOnline {
     return mapa[entrada] || "auto";
   }
 
-  configurarSala() {
+  configuracaoPadrao() {
     const nomePadrao = "Sala de " + (this.save.playerName || "Jogador");
-    const salaNome = String(prompt("Nome da sala:", nomePadrao) || nomePadrao).trim().slice(0, 24);
-    const maxDigitado = Number(prompt("Quantos jogadores? Escolha de 2 até 24:", "4"));
-    const max = limitar(Number.isFinite(maxDigitado) ? Math.trunc(maxDigitado) : 4, 2, 24);
-    const faseDigitada = Number(prompt("Número da fase (1 até " + StageCatalog.count() + "):", "1"));
-    const fase = limitar(Number.isFinite(faseDigitada) ? Math.trunc(faseDigitada) - 1 : 0, 0, StageCatalog.count() - 1);
-    const voltasPadrao = StageCatalog.byIndex(fase).laps || 3;
-    const voltasDigitadas = Number(prompt("Número de voltas (1 até 10):", String(voltasPadrao)));
-    const voltas = limitar(Number.isFinite(voltasDigitadas) ? Math.trunc(voltasDigitadas) : voltasPadrao, 1, 10);
-    const clima = this.climaEscolhido(prompt(
-      "Clima: 1 Automático, 2 Sol, 3 Chuva leve, 4 Chuva forte, 5 Neve, 6 Neblina, 7 Noite:",
-      "1"
-    ));
-    const pocaAgua = confirm("Ativar poças d'água nesta corrida?");
-    const pocaOleo = confirm("Ativar poças de óleo nesta corrida?");
-    return { salaNome, max, fase, voltas, clima, pocaAgua, pocaOleo };
+    const fase = 0;
+    return { salaNome: nomePadrao, max: 4, fase, voltas: StageCatalog.byIndex(fase).laps || 3, clima: "auto", pocaAgua: true, pocaOleo: false };
   }
 
-  conectar(criar) {
+  abrirConfiguracaoSala() {
+    if (this.formularioSala) return;
+    const padrao = this.configuracaoPadrao();
+    const opcoesFase = [];
+    for (let i = 0; i < StageCatalog.count(); i++) {
+      const fase = StageCatalog.byIndex(i);
+      opcoesFase.push(`<option value="${i}">${i + 1}. ${fase.countryName} — ${fase.name}</option>`);
+    }
+    const overlay = document.createElement("div");
+    overlay.className = "sala-config-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Configurar sala online");
+    overlay.innerHTML = `
+      <form class="sala-config-card">
+        <header class="sala-config-header">
+          <span class="sala-config-kicker">JOGAR ONLINE</span>
+          <h1>CONFIGURAR SALA</h1>
+          <p>Monte a corrida do seu jeito e convide até 24 pilotos.</p>
+        </header>
+        <section class="sala-config-bloco">
+          <h2>IDENTIDADE DA SALA</h2>
+          <div class="sala-config-grid sala-config-grid-identidade">
+            <label><span>Nome da sala</span><input name="salaNome" maxlength="24" autocomplete="off"></label>
+            <label><span>Máximo de jogadores</span><input name="max" type="number" min="2" max="24" inputmode="numeric"></label>
+          </div>
+        </section>
+        <section class="sala-config-bloco">
+          <h2>PISTA E CORRIDA</h2>
+          <div class="sala-config-grid">
+            <label class="sala-config-largo"><span>Pista</span><select name="fase">${opcoesFase.join("")}</select></label>
+            <label><span>Voltas</span><input name="voltas" type="number" min="1" max="10" inputmode="numeric"></label>
+            <label><span>Clima</span><select name="clima"><option value="auto">Automático</option><option value="sun">Sol</option><option value="rain_light">Chuva leve</option><option value="rain_heavy">Chuva forte</option><option value="snow">Neve</option><option value="fog">Neblina</option><option value="night">Noite</option></select></label>
+          </div>
+        </section>
+        <section class="sala-config-bloco">
+          <h2>DESAFIOS DA PISTA</h2>
+          <div class="sala-config-opcoes">
+            <label class="sala-config-toggle"><span><b>Poças d'água</b><small>Perda de aderência em trechos molhados</small></span><input name="pocaAgua" type="checkbox"><i></i></label>
+            <label class="sala-config-toggle"><span><b>Poças de óleo</b><small>Derrapagens e mais risco nas curvas</small></span><input name="pocaOleo" type="checkbox"><i></i></label>
+          </div>
+        </section>
+        <footer class="sala-config-acoes"><button class="sala-config-voltar" type="button">VOLTAR</button><button class="sala-config-criar" type="submit">CRIAR SALA</button></footer>
+      </form>`;
+    const form = overlay.querySelector("form");
+    form.elements.salaNome.value = padrao.salaNome;
+    form.elements.max.value = padrao.max;
+    form.elements.fase.value = padrao.fase;
+    form.elements.voltas.value = padrao.voltas;
+    form.elements.clima.value = padrao.clima;
+    form.elements.pocaAgua.checked = padrao.pocaAgua;
+    form.elements.pocaOleo.checked = padrao.pocaOleo;
+    form.elements.fase.addEventListener("change", () => {
+      form.elements.voltas.value = StageCatalog.byIndex(Number(form.elements.fase.value)).laps || 3;
+    });
+    form.querySelector(".sala-config-voltar").addEventListener("click", () => this.fecharConfiguracaoSala());
+    form.addEventListener("submit", evento => {
+      evento.preventDefault();
+      const salaNome = String(form.elements.salaNome.value || padrao.salaNome).trim().slice(0, 24) || padrao.salaNome;
+      const max = limitar(Math.trunc(Number(form.elements.max.value) || 4), 2, 24);
+      const fase = limitar(Math.trunc(Number(form.elements.fase.value) || 0), 0, StageCatalog.count() - 1);
+      const voltas = limitar(Math.trunc(Number(form.elements.voltas.value) || 3), 1, 10);
+      const clima = this.climaEscolhido(form.elements.clima.value);
+      const configuracao = { salaNome, max, fase, voltas, clima, pocaAgua: form.elements.pocaAgua.checked, pocaOleo: form.elements.pocaOleo.checked };
+      this.fecharConfiguracaoSala();
+      this.conectar(true, configuracao);
+    });
+    this.app.camadaHtml.appendChild(overlay);
+    this.formularioSala = overlay;
+  }
+
+  fecharConfiguracaoSala() {
+    if (this.formularioSala?.parentNode) this.formularioSala.parentNode.removeChild(this.formularioSala);
+    this.formularioSala = null;
+  }
+
+  conectar(criar, configuracao) {
     const digitado = criar ? "" : String(prompt("Código da sala:", this.codigo) || "").trim().toUpperCase();
     if (!criar && !digitado) return;
-    const configuracao = criar ? this.configurarSala() : {};
+    configuracao = criar ? (configuracao || this.configuracaoPadrao()) : {};
     this.status = "Conectando ao servidor…";
     const service = new OnlineService(this.save.onlineServerUrl);
     OnlineSession.service = service;
@@ -129,7 +196,7 @@ class TelaOnline {
       );
     }
 
-    const labels = this.codigo ? ["PRONTO", "INICIAR CORRIDA", "VOLTAR"] : ["CRIAR SALA", "ENTRAR NA SALA", "VOLTAR"];
+    const labels = this.codigo ? ["PRONTO", "INICIAR CORRIDA", "VOLTAR"] : ["CONFIGURAR SALA", "ENTRAR NA SALA", "VOLTAR"];
     this.botoes = [];
     labels.forEach((t, i) => {
       const inicio = this.codigo ? .37 : .38;
@@ -144,7 +211,7 @@ class TelaOnline {
       retanguloArredondado(ctx, r, 18);
       ctx.fill();
       ctx.strokeStyle = "#63f6ff";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = this.foco === i ? 4 : 2;
       ctx.stroke();
       ctx.fillStyle = "#fff";
       ctx.font = `800 ${Math.max(14, h * (this.codigo ? .032 : .035))}px ${FONTE}`;
@@ -164,8 +231,13 @@ class TelaOnline {
     if (tipo !== "cima") return;
     const i = this.botoes.findIndex(r => Ret.contem(r, x, y));
     if (i < 0) return;
+    this.foco = i;
+    this.acionarIndice(i);
+  }
+
+  acionarIndice(i) {
     if (!this.codigo) {
-      if (i === 0) this.conectar(true);
+      if (i === 0) this.abrirConfiguracaoSala();
       else if (i === 1) this.conectar(false);
       else this.app.irPara("menu");
     } else {
@@ -178,6 +250,14 @@ class TelaOnline {
         this.app.irPara("menu");
       }
     }
+  }
+
+  aoTeclar(evento, apertou) {
+    if (!apertou || this.formularioSala) return;
+    if (evento.code === "ArrowDown" || evento.code === "ArrowRight") this.foco = (this.foco + 1) % 3;
+    else if (evento.code === "ArrowUp" || evento.code === "ArrowLeft") this.foco = this.foco <= 0 ? 2 : this.foco - 1;
+    else if ((evento.code === "Enter" || evento.code === "Space") && this.foco >= 0) this.acionarIndice(this.foco);
+    else if (evento.code === "Escape") this.acionarIndice(2);
   }
 }
 

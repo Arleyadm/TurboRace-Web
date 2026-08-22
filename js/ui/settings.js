@@ -82,6 +82,10 @@ class TelaDeConfiguracoes {
     this.scrollHost = null;
     this.ouvinteScroll = null;
     this.usaRolagemNativa = true;
+    this.ultimoToqueY = null;
+    this.ouvinteTouchStart = null;
+    this.ouvinteTouchMove = null;
+    this.ouvinteTouchEnd = null;
 
     // Aviso de rodape no lugar do Toast.
     this.aviso = "";
@@ -134,6 +138,7 @@ class TelaDeConfiguracoes {
 
     window.addEventListener("keydown", this.ouvinteTeclado);
     this.criarRolagemNativa();
+    this.ativarRolagemPorToque();
 
     // onResume: a musica do menu continua tocando nesta tela.
     this.menuSound.startMusic("menu_music");
@@ -144,6 +149,10 @@ class TelaDeConfiguracoes {
     window.removeEventListener("scroll", this.ouvinteScroll);
     document.body.removeEventListener("scroll", this.ouvinteScroll);
     document.documentElement.removeEventListener("scroll", this.ouvinteScroll);
+    this.app.canvas.removeEventListener("touchstart", this.ouvinteTouchStart);
+    this.app.canvas.removeEventListener("touchmove", this.ouvinteTouchMove);
+    this.app.canvas.removeEventListener("touchend", this.ouvinteTouchEnd);
+    this.app.canvas.removeEventListener("touchcancel", this.ouvinteTouchEnd);
     if (this.scrollHost && this.scrollHost.parentNode) this.scrollHost.parentNode.removeChild(this.scrollHost);
     document.body.classList.remove("configuracoes-rolaveis");
     document.documentElement.classList.remove("configuracoes-rolaveis");
@@ -189,6 +198,27 @@ class TelaDeConfiguracoes {
     document.body.addEventListener("scroll", this.ouvinteScroll, { passive: true });
     document.documentElement.addEventListener("scroll", this.ouvinteScroll, { passive: true });
     this.scrollHost = host;
+  }
+
+  ativarRolagemPorToque() {
+    this.ouvinteTouchStart = evento => {
+      this.ultimoToqueY = evento.touches?.[0]?.clientY ?? null;
+    };
+    this.ouvinteTouchMove = evento => {
+      const y = evento.touches?.[0]?.clientY;
+      if (y == null || this.ultimoToqueY == null) return;
+      const delta = this.ultimoToqueY - y;
+      this.ultimoToqueY = y;
+      if (Math.abs(delta) < 1) return;
+      evento.preventDefault();
+      const escalaY = this.app.altura / Math.max(1, window.innerHeight);
+      this.aoGirarRoda(delta * escalaY);
+    };
+    this.ouvinteTouchEnd = () => { this.ultimoToqueY = null; };
+    this.app.canvas.addEventListener("touchstart", this.ouvinteTouchStart, { passive: true });
+    this.app.canvas.addEventListener("touchmove", this.ouvinteTouchMove, { passive: false });
+    this.app.canvas.addEventListener("touchend", this.ouvinteTouchEnd, { passive: true });
+    this.app.canvas.addEventListener("touchcancel", this.ouvinteTouchEnd, { passive: true });
   }
 
   sincronizarRolagemNativa(altura) {
