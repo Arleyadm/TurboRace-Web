@@ -167,7 +167,159 @@ class TelaOnline {
     })[clima] || "AUTOMÁTICO";
   }
 
+  preencherImagem(ctx, img, w, h) {
+    if (!img) return;
+    const escala = Math.max(w / img.width, h / img.height);
+    const sw = w / escala;
+    const sh = h / escala;
+    ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, h);
+  }
+
+  painelLobby(ctx, ret, cor) {
+    const grad = ctx.createLinearGradient(0, ret.top, 0, ret.bottom);
+    grad.addColorStop(0, "rgba(10,20,48,.88)");
+    grad.addColorStop(1, "rgba(24,7,38,.90)");
+    retanguloArredondado(ctx, ret, 20);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = cor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  botaoLobby(ctx, ret, texto, cor, desativado, focado) {
+    retanguloArredondado(ctx, ret, 16);
+    ctx.fillStyle = desativado ? "rgba(17,20,38,.88)" : "rgba(15,13,38,.92)";
+    ctx.fill();
+    ctx.strokeStyle = desativado ? "rgba(140,145,170,.45)" : cor;
+    ctx.lineWidth = focado ? 4 : 2.5;
+    ctx.stroke();
+    ctx.fillStyle = desativado ? "rgba(185,187,204,.48)" : "#fff";
+    ctx.font = `900 ${Math.max(13, Ret.altura(ret) * .32)}px ${FONTE}`;
+    ctx.textAlign = "center";
+    ctx.fillText(texto, Ret.centroX(ret), Ret.centroY(ret) + Ret.altura(ret) * .11);
+  }
+
+  renderLobby(ctx, w, h) {
+    const s = this.resumo || { jogadores: [] };
+    const jogadores = Array.isArray(s.jogadores) ? s.jogadores : [];
+    const maxJogadores = Number(s.maxJogadores || 4);
+    const fase = StageCatalog.byIndex(Number(s.fase || 0));
+    const fundo = Assets.img("menu_bg_turbo_race");
+    if (fundo) this.preencherImagem(ctx, fundo, w, h);
+    else { ctx.fillStyle = "#080b1d"; ctx.fillRect(0, 0, w, h); }
+    const sombra = ctx.createLinearGradient(0, 0, 0, h);
+    sombra.addColorStop(0, "rgba(3,7,22,.48)");
+    sombra.addColorStop(1, "rgba(3,5,17,.88)");
+    ctx.fillStyle = sombra;
+    ctx.fillRect(0, 0, w, h);
+
+    const dp = Math.max(.72, Math.min(w / 1280, h / 720));
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#d2c7f0";
+    ctx.font = `700 ${18 * dp}px ${FONTE}`;
+    ctx.fillText("CÓDIGO DA SALA", w / 2, h * .075);
+    ctx.fillStyle = "#65f6e5";
+    ctx.shadowColor = "rgba(0,245,255,.55)";
+    ctx.shadowBlur = 18 * dp;
+    ctx.font = `900 ${52 * dp}px ${FONTE}`;
+    ctx.fillText(this.codigo, w / 2, h * .155);
+    ctx.shadowBlur = 0;
+
+    const voltar = { left: w * .035, right: w * .18, top: h * .045, bottom: h * .14 };
+    this.botaoLobby(ctx, voltar, "VOLTAR", "#ff9a3c", false, this.foco === 3);
+
+    const pistaRet = { left: w * .055, right: w * .455, top: h * .23, bottom: h * .72 };
+    const pilotosRet = { left: w * .485, right: w * .945, top: h * .23, bottom: h * .72 };
+    this.painelLobby(ctx, pistaRet, "rgba(255,210,77,.68)");
+    this.painelLobby(ctx, pilotosRet, "rgba(0,245,255,.58)");
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#a8f8ff";
+    ctx.font = `800 ${14 * dp}px ${FONTE}`;
+    ctx.fillText("TODOS CORREM ESTA FASE", pistaRet.left + 22 * dp, pistaRet.top + 34 * dp);
+    ctx.fillStyle = "#ffd24d";
+    ctx.font = `900 ${28 * dp}px ${FONTE}`;
+    ctx.fillText(fase.name, pistaRet.left + 22 * dp, pistaRet.top + 70 * dp);
+    ctx.fillStyle = "#fff";
+    ctx.font = `700 ${17 * dp}px ${FONTE}`;
+    ctx.fillText(`${fase.countryName}  •  ${Number(s.voltas || fase.laps || 3)} voltas`, pistaRet.left + 22 * dp, pistaRet.top + 99 * dp);
+
+    const detalhes = [
+      ["CLIMA", this.nomeDoClima(s.clima)],
+      ["ÁGUA", s.pocaAgua ? "SIM" : "NÃO"],
+      ["ÓLEO", s.pocaOleo ? "SIM" : "NÃO"],
+      ["PILOTOS", `ATÉ ${maxJogadores}`]
+    ];
+    detalhes.forEach((item, i) => {
+      const coluna = i % 2;
+      const linha = Math.trunc(i / 2);
+      const x = pistaRet.left + 22 * dp + coluna * (Ret.largura(pistaRet) * .47);
+      const y = pistaRet.top + (145 + linha * 74) * dp;
+      ctx.fillStyle = "#8f9bb9";
+      ctx.font = `800 ${11 * dp}px ${FONTE}`;
+      ctx.fillText(item[0], x, y);
+      ctx.fillStyle = "#fff";
+      ctx.font = `900 ${16 * dp}px ${FONTE}`;
+      ctx.fillText(item[1], x, y + 24 * dp);
+    });
+    ctx.fillStyle = "#d2c7f0";
+    ctx.font = `600 ${13 * dp}px ${FONTE}`;
+    ctx.fillText(s.nome || "Sala online", pistaRet.left + 22 * dp, pistaRet.bottom - 22 * dp);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = `900 ${21 * dp}px ${FONTE}`;
+    ctx.fillText(`NA SALA (${jogadores.length}/${maxJogadores})`, pilotosRet.left + 22 * dp, pilotosRet.top + 35 * dp);
+    const limite = Math.max(3, Math.min(7, Math.trunc((Ret.altura(pilotosRet) - 85 * dp) / (48 * dp))));
+    jogadores.slice(0, limite).forEach((p, i) => {
+      const y = pilotosRet.top + (72 + i * 49) * dp;
+      const img = Assets.img("car_" + limitar(Math.trunc(Number(p.carId) || 0), 0, 9));
+      if (img) ctx.drawImage(img, pilotosRet.left + 20 * dp, y - 23 * dp, 54 * dp, 34 * dp);
+      const anfitriao = p.pid === s.anfitriaoPid;
+      ctx.fillStyle = "#fff";
+      ctx.font = `800 ${17 * dp}px ${FONTE}`;
+      ctx.fillText((p.nome || "Jogador") + (anfitriao ? "  ★" : ""), pilotosRet.left + 84 * dp, y);
+      ctx.textAlign = "right";
+      ctx.fillStyle = p.pronto ? "#65f6a8" : "#ffd24d";
+      ctx.font = `800 ${13 * dp}px ${FONTE}`;
+      ctx.fillText(p.pronto ? "PRONTO" : "ESPERANDO", pilotosRet.right - 20 * dp, y);
+      ctx.textAlign = "left";
+    });
+    if (jogadores.length > limite) {
+      ctx.fillStyle = "#a8f8ff";
+      ctx.font = `700 ${13 * dp}px ${FONTE}`;
+      ctx.fillText(`+ ${jogadores.length - limite} pilotos na sala`, pilotosRet.left + 22 * dp, pilotosRet.bottom - 25 * dp);
+    } else {
+      ctx.fillStyle = jogadores.length < 2 ? "#ffd24d" : "#a8f8ff";
+      ctx.font = `700 ${13 * dp}px ${FONTE}`;
+      ctx.fillText(jogadores.length < 2 ? "Aguardando pelo menos mais 1 piloto para largar." : "Sala pronta para a largada.", pilotosRet.left + 22 * dp, pilotosRet.bottom - 25 * dp);
+    }
+
+    const prontoLocal = jogadores.some(p => p.pid === OnlineSession.service?.pid && p.pronto);
+    const podeLargar = this.host && jogadores.length >= 2;
+    const botoes = [
+      { left: w * .055, right: w * .31, top: h * .81, bottom: h * .925 },
+      { left: w * .335, right: w * .59, top: h * .81, bottom: h * .925 },
+      { left: w * .615, right: w * .945, top: h * .81, bottom: h * .925 }
+    ];
+    this.botoes = botoes.concat([voltar]);
+    this.botaoLobby(ctx, botoes[0], prontoLocal ? "PRONTO ✓" : "ESTOU PRONTO", "#ffd24d", false, this.foco === 0);
+    this.botaoLobby(ctx, botoes[1], "LARGAR", "#65f6e5", !podeLargar, this.foco === 1);
+    this.botaoLobby(ctx, botoes[2], "COPIAR CÓDIGO", "#ff2daa", false, this.foco === 2);
+
+    if (this.status && this.status !== "Sala pronta — compartilhe o código") {
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffd24d";
+      ctx.font = `700 ${12 * dp}px ${FONTE}`;
+      ctx.fillText(this.status, w / 2, h * .975);
+    }
+  }
+
   render(ctx, w, h) {
+    if (this.codigo && this.resumo) {
+      this.renderLobby(ctx, w, h);
+      return;
+    }
     const g = ctx.createLinearGradient(0, 0, w, h);
     g.addColorStop(0, "#07152f");
     g.addColorStop(1, "#27062f");
@@ -183,25 +335,12 @@ class TelaOnline {
     ctx.fillStyle = "#fff";
     ctx.fillText(this.codigo ? "CÓDIGO: " + this.codigo : this.status, w / 2, h * (this.codigo ? .22 : .27));
 
-    if (this.resumo) {
-      const s = this.resumo;
-      ctx.font = `700 ${Math.max(11, h * .021)}px ${FONTE}`;
-      ctx.fillStyle = "#b8faff";
-      ctx.fillText((s.nome || "SALA") + "  •  " + s.jogadores.length + "/" + s.maxJogadores + " JOGADORES", w / 2, h * .275);
-      ctx.fillStyle = "#ffe36a";
-      ctx.fillText(
-        "FASE " + (Number(s.fase) + 1) + "  •  " + s.voltas + " VOLTAS  •  " + this.nomeDoClima(s.clima) +
-        "  •  ÁGUA " + (s.pocaAgua ? "SIM" : "NÃO") + "  •  ÓLEO " + (s.pocaOleo ? "SIM" : "NÃO"),
-        w / 2, h * .315
-      );
-    }
-
-    const labels = this.codigo ? ["PRONTO", "INICIAR CORRIDA", "VOLTAR"] : ["CONFIGURAR SALA", "ENTRAR NA SALA", "VOLTAR"];
+    const labels = ["CONFIGURAR SALA", "ENTRAR NA SALA", "VOLTAR"];
     this.botoes = [];
     labels.forEach((t, i) => {
-      const inicio = this.codigo ? .37 : .38;
-      const passo = this.codigo ? .15 : .16;
-      const alturaBotao = this.codigo ? .105 : .11;
+      const inicio = .38;
+      const passo = .16;
+      const alturaBotao = .11;
       const r = { left: w * .28, right: w * .72, top: h * (inicio + i * passo), bottom: h * (inicio + alturaBotao + i * passo) };
       this.botoes.push(r);
       const grad = ctx.createLinearGradient(r.left, 0, r.right, 0);
@@ -214,17 +353,10 @@ class TelaOnline {
       ctx.lineWidth = this.foco === i ? 4 : 2;
       ctx.stroke();
       ctx.fillStyle = "#fff";
-      ctx.font = `800 ${Math.max(14, h * (this.codigo ? .032 : .035))}px ${FONTE}`;
+      ctx.font = `800 ${Math.max(14, h * .035)}px ${FONTE}`;
       ctx.fillText(t, w / 2, (r.top + r.bottom) / 2 + h * .011);
     });
 
-    if (this.resumo?.jogadores) {
-      ctx.font = `600 ${Math.max(11, h * .021)}px ${FONTE}`;
-      ctx.fillStyle = "#fff";
-      const nomes = this.resumo.jogadores.map(p => p.nome + (p.pronto ? " ✓" : ""));
-      const limite = 8;
-      ctx.fillText(nomes.slice(0, limite).join("  •  ") + (nomes.length > limite ? "  +" + (nomes.length - limite) : ""), w / 2, h * .91);
-    }
   }
 
   aoApontar(tipo, x, y) {
@@ -241,10 +373,18 @@ class TelaOnline {
       else if (i === 1) this.conectar(false);
       else this.app.irPara("menu");
     } else {
-      if (i === 0) OnlineSession.service?.setReady(true);
+      if (i === 0) {
+        const local = this.resumo?.jogadores?.find(p => p.pid === OnlineSession.service?.pid);
+        OnlineSession.service?.setReady(!local?.pronto);
+      }
       else if (i === 1) {
-        if (this.host) OnlineSession.service?.startRace();
+        if (this.host && (this.resumo?.jogadores?.length || 0) >= 2) OnlineSession.service?.startRace();
+        else if (this.host) this.status = "Aguardando pelo menos mais 1 piloto.";
         else this.status = "Somente o anfitrião pode iniciar";
+      } else if (i === 2) {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(this.codigo).then(() => { this.status = "Código copiado: " + this.codigo; }).catch(() => { this.status = "Código da sala: " + this.codigo; });
+        } else this.status = "Código da sala: " + this.codigo;
       } else {
         OnlineSession.clear();
         this.app.irPara("menu");
@@ -254,10 +394,11 @@ class TelaOnline {
 
   aoTeclar(evento, apertou) {
     if (!apertou || this.formularioSala) return;
-    if (evento.code === "ArrowDown" || evento.code === "ArrowRight") this.foco = (this.foco + 1) % 3;
-    else if (evento.code === "ArrowUp" || evento.code === "ArrowLeft") this.foco = this.foco <= 0 ? 2 : this.foco - 1;
+    const total = this.codigo ? 4 : 3;
+    if (evento.code === "ArrowDown" || evento.code === "ArrowRight") this.foco = (this.foco + 1) % total;
+    else if (evento.code === "ArrowUp" || evento.code === "ArrowLeft") this.foco = this.foco <= 0 ? total - 1 : this.foco - 1;
     else if ((evento.code === "Enter" || evento.code === "Space") && this.foco >= 0) this.acionarIndice(this.foco);
-    else if (evento.code === "Escape") this.acionarIndice(2);
+    else if (evento.code === "Escape") this.acionarIndice(this.codigo ? 3 : 2);
   }
 }
 
